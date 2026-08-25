@@ -9,6 +9,8 @@
 
 #include "ranger_base/ranger_messenger.hpp"
 
+#include <stdexcept>
+
 #include "ranger_base/kinematics_model.hpp"
 #include "ranger_base/ranger_state_semantics.hpp"
 
@@ -67,6 +69,11 @@ void RangerROSMessenger::LoadParameters() {
   odom_frame_ =  node_->declare_parameter<std::string>("odom_frame","odom");
   base_frame_ = node_->declare_parameter<std::string>("base_frame", "base_link");
   update_rate_ = node_->declare_parameter<int>("update_rate", 50);
+  bms_feedback_timeout_ms_ =
+      node_->declare_parameter<int>("bms_feedback_timeout_ms", 2000);
+  if (bms_feedback_timeout_ms_ <= 0) {
+    throw std::invalid_argument("bms_feedback_timeout_ms must be positive");
+  }
   odom_topic_name_ = node_->declare_parameter<std::string>("odom_topic_name", "odom");
   publish_odom_tf_ = node_->declare_parameter<bool>("publish_odom_tf",false);
 
@@ -232,7 +239,9 @@ void RangerROSMessenger::PublishStateToROS() {
     //                 actuator_state.motor_speeds.speed_4);
 
     actuator_state_pub_->publish(
-        BuildActuatorStateMessage(actuator_state, current_time_));
+        BuildActuatorStateMessage(
+            actuator_state, current_time_,
+            robot_type_ == RangerSubType::kRangerMiniV3));
   }
 
   // publish BMS state
@@ -241,7 +250,8 @@ void RangerROSMessenger::PublishStateToROS() {
 
     battery_state_pub_->publish(BuildBatteryStateMessage(
         common_sensor_state, current_time_,
-        robot_type_ == RangerSubType::kRangerMiniV3));
+        robot_type_ == RangerSubType::kRangerMiniV3,
+        std::chrono::milliseconds(bms_feedback_timeout_ms_)));
   }
 }
 

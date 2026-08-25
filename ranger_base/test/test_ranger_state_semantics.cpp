@@ -19,7 +19,8 @@ TEST(RangerStateSemantics, PreservesEightDistinctActuatorSlots) {
         static_cast<float>(40 + index);
   }
 
-  const auto message = BuildActuatorStateMessage(state, {});
+  const auto message =
+      BuildActuatorStateMessage(state, rclcpp::Time(0), true);
   ASSERT_EQ(message.states.size(), 8U);
   for (std::size_t index = 0; index < 8; ++index) {
     EXPECT_EQ(message.states[index].id, index + 1);
@@ -31,18 +32,23 @@ TEST(RangerStateSemantics, PreservesEightDistinctActuatorSlots) {
     EXPECT_TRUE(std::isnan(message.states[index].motor.motor_angles));
     EXPECT_FLOAT_EQ(message.states[index + 4].motor.motor_angles, 5.0F + index);
     EXPECT_TRUE(std::isnan(message.states[index + 4].motor.motor_speeds));
+    EXPECT_TRUE(std::isnan(message.states[index].driver.motor_temperature));
+    EXPECT_TRUE(
+        std::isnan(message.states[index + 4].driver.motor_temperature));
   }
 }
 
 TEST(RangerStateSemantics, PublishesStandardMiniV3BatterySemantics) {
   RangerCommonSensorState state{};
-  state.time_stamp = SdkClock::now();
+  const auto now = SdkClock::now();
+  state.time_stamp = now - std::chrono::milliseconds(100);
   state.bms_basic_state.voltage = 538.0F;
   state.bms_basic_state.current = 17.0F;
   state.bms_basic_state.temperature = 43.8F;
   state.bms_basic_state.battery_soc = 36;
 
-  const auto message = BuildBatteryStateMessage(state, {}, true);
+  const auto message = BuildBatteryStateMessage(
+      state, rclcpp::Time(0), true, std::chrono::milliseconds(2000), now);
   EXPECT_FLOAT_EQ(message.voltage, 53.8F);
   EXPECT_TRUE(std::isnan(message.current));
   EXPECT_FLOAT_EQ(message.temperature, 43.8F);
@@ -54,15 +60,25 @@ TEST(RangerStateSemantics, PublishesStandardMiniV3BatterySemantics) {
 
 TEST(RangerStateSemantics, RejectsMissingOrInvalidBatteryFeedback) {
   RangerCommonSensorState missing{};
-  auto message = BuildBatteryStateMessage(missing, {}, true);
+  const auto now = SdkClock::now();
+  auto message = BuildBatteryStateMessage(
+      missing, rclcpp::Time(0), true, std::chrono::milliseconds(2000), now);
   EXPECT_FALSE(message.present);
   EXPECT_TRUE(std::isnan(message.voltage));
   EXPECT_TRUE(std::isnan(message.percentage));
 
-  missing.time_stamp = SdkClock::now();
+  missing.time_stamp = now;
   missing.bms_basic_state.voltage = 538.0F;
   missing.bms_basic_state.battery_soc = 101;
-  message = BuildBatteryStateMessage(missing, {}, true);
+  message = BuildBatteryStateMessage(
+      missing, rclcpp::Time(0), true, std::chrono::milliseconds(2000), now);
   EXPECT_TRUE(message.present);
   EXPECT_TRUE(std::isnan(message.percentage));
+
+  missing.time_stamp = now - std::chrono::milliseconds(2001);
+  message = BuildBatteryStateMessage(
+      missing, rclcpp::Time(0), true, std::chrono::milliseconds(2000), now);
+  EXPECT_FALSE(message.present);
+  EXPECT_TRUE(std::isnan(message.voltage));
+  EXPECT_TRUE(std::isnan(message.temperature));
 }

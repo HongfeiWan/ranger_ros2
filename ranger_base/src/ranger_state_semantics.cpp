@@ -21,7 +21,8 @@ float Unknown() { return std::numeric_limits<float>::quiet_NaN(); }
 }  // namespace
 
 ranger_msgs::msg::ActuatorStateArray BuildActuatorStateMessage(
-    const RangerActuatorState &state, const rclcpp::Time &stamp) {
+    const RangerActuatorState &state, const rclcpp::Time &stamp,
+    bool ranger_mini_v3) {
   const std::array<float, 4> speeds = {
       state.motor_speeds.speed_1, state.motor_speeds.speed_2,
       state.motor_speeds.speed_3, state.motor_speeds.speed_4};
@@ -37,7 +38,9 @@ ranger_msgs::msg::ActuatorStateArray BuildActuatorStateMessage(
     item.id = static_cast<uint32_t>(index + 1);
     item.driver.driver_voltage = state.actuator_ls_state[index].driver_voltage;
     item.driver.driver_temperature = state.actuator_ls_state[index].driver_temp;
-    item.driver.motor_temperature = state.actuator_ls_state[index].motor_temp;
+    item.driver.motor_temperature = ranger_mini_v3
+                                        ? Unknown()
+                                        : state.actuator_ls_state[index].motor_temp;
     item.driver.driver_state = state.actuator_ls_state[index].driver_state;
     item.motor.current = state.actuator_hs_state[index].current;
     item.motor.pulse_count = state.actuator_hs_state[index].pulse_count;
@@ -52,10 +55,13 @@ ranger_msgs::msg::ActuatorStateArray BuildActuatorStateMessage(
 
 sensor_msgs::msg::BatteryState BuildBatteryStateMessage(
     const RangerCommonSensorState &state, const rclcpp::Time &stamp,
-    bool ranger_mini_v3) {
+    bool ranger_mini_v3, std::chrono::milliseconds freshness_timeout,
+    SdkTimePoint now) {
   sensor_msgs::msg::BatteryState message;
   message.header.stamp = stamp;
-  const bool received = state.time_stamp != SdkTimePoint{};
+  const bool received = state.time_stamp != SdkTimePoint{} &&
+                        now >= state.time_stamp &&
+                        now - state.time_stamp <= freshness_timeout;
   const float voltage = ranger_mini_v3
                             ? state.bms_basic_state.voltage *
                                   kRangerMiniV3VoltageScale

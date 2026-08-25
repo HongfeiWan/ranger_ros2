@@ -95,6 +95,7 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
   std::string base_frame_;
   std::string odom_topic_name_;
   int update_rate_;
+  int bms_feedback_timeout_ms_;
   bool publish_odom_tf_;
 
   uint8_t motion_mode_ = 0;
