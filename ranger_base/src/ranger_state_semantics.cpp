@@ -59,9 +59,10 @@ sensor_msgs::msg::BatteryState BuildBatteryStateMessage(
     SdkTimePoint now) {
   sensor_msgs::msg::BatteryState message;
   message.header.stamp = stamp;
-  const bool received = state.time_stamp != SdkTimePoint{} &&
+  const bool received = freshness_timeout.count() > 0 &&
+                        state.time_stamp != SdkTimePoint{} &&
                         now >= state.time_stamp &&
-                        now - state.time_stamp <= freshness_timeout;
+                        now - state.time_stamp < freshness_timeout;
   const float voltage = ranger_mini_v3
                             ? state.bms_basic_state.voltage *
                                   kRangerMiniV3VoltageScale

@@ -70,7 +70,7 @@ void RangerROSMessenger::LoadParameters() {
   base_frame_ = node_->declare_parameter<std::string>("base_frame", "base_link");
   update_rate_ = node_->declare_parameter<int>("update_rate", 50);
   bms_feedback_timeout_ms_ =
-      node_->declare_parameter<int>("bms_feedback_timeout_ms", 2000);
+      node_->declare_parameter<int>("bms_feedback_timeout_ms", 1500);
   if (bms_feedback_timeout_ms_ <= 0) {
     throw std::invalid_argument("bms_feedback_timeout_ms must be positive");
   }
