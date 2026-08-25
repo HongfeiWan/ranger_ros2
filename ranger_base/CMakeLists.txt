@@ -46,7 +46,8 @@ set(DEPENDENCIES
 
 add_executable(ranger_base_node
     src/ranger_base_node.cpp
-    src/ranger_messenger.cpp)
+    src/ranger_messenger.cpp
+    src/ranger_state_semantics.cpp)
 
 target_link_libraries(ranger_base_node ugv_sdk)
 ament_target_dependencies(ranger_base_node ${DEPENDENCIES})
@@ -62,6 +63,7 @@ install(DIRECTORY launch
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
   # the following line skips the linter which checks for copyrights
   # uncomment the line when a copyright and license is not present in all source files
   #set(ament_cmake_copyright_FOUND TRUE)
@@ -69,6 +71,12 @@ if(BUILD_TESTING)
   # uncomment the line when this package is not in a git repo
   #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  ament_add_gtest(test_ranger_state_semantics
+    test/test_ranger_state_semantics.cpp
+    src/ranger_state_semantics.cpp)
+  target_link_libraries(test_ranger_state_semantics ugv_sdk)
+  ament_target_dependencies(test_ranger_state_semantics ${DEPENDENCIES})
 endif()
 
 ament_package()
