@@ -5,9 +5,19 @@
 
 #include "gtest/gtest.h"
 #include "ranger_base/ranger_state_semantics.hpp"
+#include "ranger_msgs/msg/system_state.hpp"
 #include "ugv_sdk/details/interface/robot_common_interface.hpp"
 
 using namespace westonrobot;
+
+TEST(RangerStateSemantics, ControlModeConstantsMatchSdk) {
+  EXPECT_EQ(ranger_msgs::msg::SystemState::CONTROL_MODE_STANDBY,
+            CONTROL_MODE_STANDBY);
+  EXPECT_EQ(ranger_msgs::msg::SystemState::CONTROL_MODE_CAN, CONTROL_MODE_CAN);
+  EXPECT_EQ(ranger_msgs::msg::SystemState::CONTROL_MODE_UART,
+            CONTROL_MODE_UART);
+  EXPECT_EQ(ranger_msgs::msg::SystemState::CONTROL_MODE_RC, CONTROL_MODE_RC);
+}
 
 TEST(RangerStateSemantics, PreservesEightDistinctActuatorSlots) {
   RangerActuatorState state{};
