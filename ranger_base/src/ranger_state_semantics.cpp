@@ -20,6 +20,11 @@ float Unknown() { return std::numeric_limits<float>::quiet_NaN(); }
 
 }  // namespace
 
+uint32_t BuildRangerMiniV3ErrorCode(const SystemStateMessage &state) {
+  return static_cast<uint32_t>(state.error_code) << 16 |
+         state.system_state_tail;
+}
+
 ranger_msgs::msg::ActuatorStateArray BuildActuatorStateMessage(
     const RangerActuatorState &state, const rclcpp::Time &stamp,
     bool ranger_mini_v3) {

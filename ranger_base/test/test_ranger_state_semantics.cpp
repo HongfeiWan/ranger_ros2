@@ -19,6 +19,17 @@ TEST(RangerStateSemantics, ControlModeConstantsMatchSdk) {
   EXPECT_EQ(ranger_msgs::msg::SystemState::CONTROL_MODE_RC, CONTROL_MODE_RC);
 }
 
+TEST(RangerStateSemantics, BuildsMiniV3ErrorCodeFromAllFourBytes) {
+  SystemStateMessage state{};
+  state.error_code = 0x0000;
+  state.system_state_tail = 0x00f9;
+  EXPECT_EQ(BuildRangerMiniV3ErrorCode(state), 0x000000f9U);
+
+  state.error_code = 0x1234;
+  state.system_state_tail = 0xabcd;
+  EXPECT_EQ(BuildRangerMiniV3ErrorCode(state), 0x1234abcdU);
+}
+
 TEST(RangerStateSemantics, PreservesEightDistinctActuatorSlots) {
   RangerActuatorState state{};
   state.motor_speeds = {1.0F, 2.0F, 3.0F, 4.0F};

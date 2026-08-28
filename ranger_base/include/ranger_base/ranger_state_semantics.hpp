@@ -5,6 +5,7 @@
 #define RANGER_STATE_SEMANTICS_HPP
 
 #include <chrono>
+#include <cstdint>
 
 #include <ranger_msgs/msg/actuator_state_array.hpp>
 #include <rclcpp/time.hpp>
@@ -12,6 +13,8 @@
 #include <ugv_sdk/details/interface/ranger_interface.hpp>
 
 namespace westonrobot {
+
+uint32_t BuildRangerMiniV3ErrorCode(const SystemStateMessage &state);
 
 ranger_msgs::msg::ActuatorStateArray BuildActuatorStateMessage(
     const RangerActuatorState &state, const rclcpp::Time &stamp,
