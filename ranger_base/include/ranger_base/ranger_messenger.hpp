@@ -11,9 +11,10 @@
 #define RANGER_MESSENGER_HPP
 
 //std and c++ inlclude
-#include <string>
-#include <memory>
+#include <chrono>
 #include <cmath>
+#include <memory>
+#include <string>
 
 //ros include
 #include <rclcpp/rclcpp.hpp>
@@ -73,6 +74,8 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
   void PublishStateToROS();
   void PublishSimStateToROS(double linear, double angular);
   void TwistCmdCallback(geometry_msgs::msg::Twist::SharedPtr msg);
+  void EnforceMotionCommandTimeout();
+  void StopMotion();
   double CalculateSteeringAngle(geometry_msgs::msg::Twist msg, double& radius);
   void UpdateOdometry(double linear, double angular, double angle, double dt);
   geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
@@ -96,10 +99,13 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
   std::string odom_topic_name_;
   int update_rate_;
   int bms_feedback_timeout_ms_;
+  int command_timeout_ms_;
   bool publish_odom_tf_;
 
   uint8_t motion_mode_ = 0;
   bool parking_mode_;
+  bool motion_command_active_ = false;
+  std::chrono::steady_clock::time_point last_motion_command_{};
 
   rclcpp::Publisher<ranger_msgs::msg::SystemState>::SharedPtr system_state_pub_;
   rclcpp::Publisher<ranger_msgs::msg::MotionState>::SharedPtr motion_state_pub_;
