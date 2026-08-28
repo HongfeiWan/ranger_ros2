@@ -30,6 +30,23 @@ TEST(RangerStateSemantics, BuildsMiniV3ErrorCodeFromAllFourBytes) {
   EXPECT_EQ(BuildRangerMiniV3ErrorCode(state), 0x1234abcdU);
 }
 
+TEST(RangerStateSemantics, MotionCommandWatchdogExpiresFailClosed) {
+  const auto last = std::chrono::steady_clock::time_point(
+      std::chrono::milliseconds(1000));
+  EXPECT_FALSE(MotionCommandExpired(
+      false, last, last + std::chrono::seconds(1),
+      std::chrono::milliseconds(200)));
+  EXPECT_FALSE(MotionCommandExpired(
+      true, last, last + std::chrono::milliseconds(199),
+      std::chrono::milliseconds(200)));
+  EXPECT_TRUE(MotionCommandExpired(
+      true, last, last + std::chrono::milliseconds(200),
+      std::chrono::milliseconds(200)));
+  EXPECT_TRUE(MotionCommandExpired(
+      true, last, last - std::chrono::milliseconds(1),
+      std::chrono::milliseconds(200)));
+}
+
 TEST(RangerStateSemantics, PreservesEightDistinctActuatorSlots) {
   RangerActuatorState state{};
   state.motor_speeds = {1.0F, 2.0F, 3.0F, 4.0F};

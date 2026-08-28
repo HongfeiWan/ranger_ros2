@@ -16,6 +16,11 @@ namespace westonrobot {
 
 uint32_t BuildRangerMiniV3ErrorCode(const SystemStateMessage &state);
 
+bool MotionCommandExpired(
+    bool command_active, std::chrono::steady_clock::time_point last_command,
+    std::chrono::steady_clock::time_point now,
+    std::chrono::milliseconds timeout);
+
 ranger_msgs::msg::ActuatorStateArray BuildActuatorStateMessage(
     const RangerActuatorState &state, const rclcpp::Time &stamp,
     bool ranger_mini_v3);

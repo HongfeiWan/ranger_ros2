@@ -45,6 +45,7 @@ RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node){
       return;
     }
     robot_->EnableCommandedMode();
+    StopMotion();
   } else {
     RCLCPP_ERROR(node_->get_logger(),"Invalid port name: %s", port_name_.c_str());
     return;
@@ -58,6 +59,7 @@ void RangerROSMessenger::Run() {
   while (rclcpp::ok()) {
     PublishStateToROS();
     rclcpp::spin_some(node_);
+    EnforceMotionCommandTimeout();
     rate.sleep();
   }
 }
@@ -71,8 +73,12 @@ void RangerROSMessenger::LoadParameters() {
   update_rate_ = node_->declare_parameter<int>("update_rate", 50);
   bms_feedback_timeout_ms_ =
       node_->declare_parameter<int>("bms_feedback_timeout_ms", 1500);
+  command_timeout_ms_ = node_->declare_parameter<int>("command_timeout_ms", 200);
   if (bms_feedback_timeout_ms_ <= 0) {
     throw std::invalid_argument("bms_feedback_timeout_ms must be positive");
+  }
+  if (command_timeout_ms_ <= 0) {
+    throw std::invalid_argument("command_timeout_ms must be positive");
   }
   odom_topic_name_ = node_->declare_parameter<std::string>("odom_topic_name", "odom");
   publish_odom_tf_ = node_->declare_parameter<bool>("publish_odom_tf",false);
@@ -362,6 +368,11 @@ void RangerROSMessenger::UpdateOdometry(double linear, double angular,
 }
 
 void RangerROSMessenger::TwistCmdCallback(geometry_msgs::msg::Twist::SharedPtr msg) {
+  if (!std::isfinite(msg->linear.x) || !std::isfinite(msg->linear.y) ||
+      !std::isfinite(msg->angular.z)) {
+    StopMotion();
+    return;
+  }
   double steer_cmd;
   double radius;
 
@@ -462,6 +473,24 @@ void RangerROSMessenger::TwistCmdCallback(geometry_msgs::msg::Twist::SharedPtr m
       break;
     }
   }
+  last_motion_command_ = std::chrono::steady_clock::now();
+  motion_command_active_ = msg->linear.x != 0.0 || msg->linear.y != 0.0 ||
+                           msg->angular.z != 0.0;
+}
+
+void RangerROSMessenger::EnforceMotionCommandTimeout() {
+  if (MotionCommandExpired(
+          motion_command_active_, last_motion_command_,
+          std::chrono::steady_clock::now(),
+          std::chrono::milliseconds(command_timeout_ms_))) {
+    StopMotion();
+    RCLCPP_WARN(node_->get_logger(), "motion command timed out; sent stop");
+  }
+}
+
+void RangerROSMessenger::StopMotion() {
+  robot_->SetMotionCommand(0.0, 0.0, 0.0);
+  motion_command_active_ = false;
 }
 
 
